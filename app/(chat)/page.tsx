@@ -30,7 +30,7 @@ export default async function Page() {
         initialChatModel={DEFAULT_CHAT_MODEL}
         initialVisibilityType="private"
         isReadonly={false}
-        session={session}
+        // session={session}
         autoResume={false}
       />
       {/* <DataStreamHandler /> */}
