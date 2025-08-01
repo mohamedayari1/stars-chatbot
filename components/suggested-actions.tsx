@@ -19,27 +19,27 @@ function PureSuggestedActions({
   selectedVisibilityType,
 }: SuggestedActionsProps) {
   const suggestedActions = [
-    {
-      title: 'What are the advantages',
-      label: 'of using Next.js?',
-      action: 'What are the advantages of using Next.js?',
-    },
-    {
-      title: 'Write code to',
-      label: `demonstrate djikstra's algorithm`,
-      action: `Write code to demonstrate djikstra's algorithm`,
-    },
-    {
-      title: 'Help me write an essay',
-      label: `about silicon valley`,
-      action: `Help me write an essay about silicon valley`,
-    },
-    {
-      title: 'What is the weather',
-      label: 'in San Francisco?',
-      action: 'What is the weather in San Francisco?',
-    },
-  ];
+  {
+    "title": "Get my birth chart",
+    "label": "based on date, time, and place of birth",
+    "action": "Generate a birth chart and explain my planetary placements"
+  },
+  {
+    "title": "Horoscope forecast",
+    "label": "for today, this week, or this month",
+    "action": "Give me a daily, weekly, or monthly horoscope based on current transits"
+  },
+  {
+    "title": "Check relationship compatibility",
+    "label": "based on two birth dates",
+    "action": "Compare two birth charts and analyze compatibility"
+  },
+  {
+    "title": "Ask a personal astrology question",
+    "label": "like why I feel anxious or when to switch jobs",
+    "action": "Analyze my current astrological transits and answer a specific question"
+  }
+];
 
   return (
     <div
