@@ -23,31 +23,44 @@ export function Chat() {
     setIsLoading(true);
 
     try {
-      const botResponse = await mockApi(userInput);
+      const response = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: `chat-${Date.now()}`,
+          message: userMessage,
+          selectedChatModel: 'gemini-pro',
+          selectedVisibilityType: 'public',
+        }),
+      });
 
-      const botMessage: ChatMessage = {
-        id: `bot-${Date.now()}`,
-        role: "assistant",
-        parts: [{ type: "text", text: botResponse }],
-      };
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-      // Add bot message to the updated messages
-      setMessages((prev) => [...prev, botMessage]);
+      const data = await response.json();
+      
+      if (data.messages && data.messages.length > 0) {
+        // Add bot message to the updated messages
+        setMessages((prev) => [...prev, data.messages[0]]);
+      } else {
+        throw new Error('No response from API');
+      }
     } catch (error) {
       console.error("Error getting bot response:", error);
+      // Add error message to chat
+      const errorMessage: ChatMessage = {
+        id: `error-${Date.now()}`,
+        role: "assistant",
+        parts: [{ type: "text", text: "Sorry, I encountered an error. Please try again." }],
+      };
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
   }
-
-  // Mock API function
-  const mockApi = (input: string): Promise<string> => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve("This is a mock response to: " + input);
-      }, 1000);
-    });
-  };
 
   return (
     <div className="flex flex-col min-w-0 h-dvh bg-background">
