@@ -58,9 +58,18 @@ class VectorSearchService {
         }
       },
       {
+        // $project: {
+        //   similarityScore: { $meta: 'searchScore' },
+        //   document: '$$ROOT'
+        // }
         $project: {
+          _id: 1,
           similarityScore: { $meta: 'searchScore' },
-          document: '$$ROOT'
+          text: '$text',
+          semester: '$semester',
+          lesson: '$lesson',
+          source_file: '$source_file'
+          // Do NOT include 'embedding'
         }
       }
     ];

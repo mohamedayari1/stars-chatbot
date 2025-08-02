@@ -2,6 +2,7 @@ import { sendGeminiRequest } from '@/lib/ai/gemini';
 import { ChatSDKError } from '@/lib/errors';
 import type { ChatMessage, SearchResponse } from '@/lib/types';
 import { vectorSearchService } from '@/lib/vectorSearch';
+import { performance } from 'perf_hooks';
 import { z } from 'zod';
 
 // Schema for the RAG request body
@@ -24,59 +25,76 @@ type RagRequestBody = z.infer<typeof ragRequestBodySchema>;
 
 export const maxDuration = 60;
 
-// RAG prompt template
+// RAG prompt template for Vedic astrology expert
 const createRagPrompt = (query: string, contextChunks: string[]): string => {
   const contextText = contextChunks.length > 0 
-    ? contextChunks.map((chunk, index) => `Context ${index + 1}:\n${chunk}`).join('\n\n')
+    ? contextChunks.map((chunk, index) => `Context ${index + 1}:
+${chunk}`).join('\n\n')
     : 'No relevant context found.';
 
-  return `You are a helpful AI assistant. Use the following context to answer the user's question. If the context doesn't contain enough information to answer the question accurately, say so and provide a general response based on your knowledge.
+  return `You are an expert Vedic astrologer and spiritual guide with deep knowledge of ancient Indian wisdom, astrology, and philosophy. You have studied the Vedas, Upanishads, and classical astrological texts extensively. Use the following context from authentic Vedic sources to answer the user's question with authority and wisdom.
 
 Context:
 ${contextText}
 
 User Question: ${query}
 
-Please provide a comprehensive answer based on the context provided. If the context is not sufficient, acknowledge this and provide the best possible answer with your general knowledge.`;
+Please provide a comprehensive and authoritative answer based on the Vedic context provided. If the context doesn't contain enough information to answer the question accurately, acknowledge this and provide insights based on your deep knowledge of Vedic astrology and philosophy. Always maintain the spiritual and philosophical depth that characterizes authentic Vedic wisdom.`;
 };
 
 export async function POST(request: Request) {
   let requestBody: RagRequestBody;
+  const totalStart = performance.now();
 
   try {
+    const parseStart = performance.now();
     const json = await request.json();
     requestBody = ragRequestBodySchema.parse(json);
+    const parseEnd = performance.now();
+    console.log(`📝 [Parse] Request parsed in ${(parseEnd - parseStart).toFixed(2)}ms`);
   } catch (_) {
+    console.log('❌ [Parse] Failed to parse request');
     return new ChatSDKError('bad_request:api').toResponse();
   }
 
   try {
-    const { message, numResults = 5 } = requestBody;
-    
+    // Accept numResults as optional, default to 5 if not present
+    const { message, numResults, selectedChatModel } = requestBody;
+    const effectiveNumResults = typeof numResults === 'number' ? numResults : 5;
+    console.log(`🤖 [Model] Selected chat model: ${selectedChatModel}`);
+
     // Extract the text from the message parts
+    const extractStart = performance.now();
     const userText = message.parts
       .filter(part => part.type === 'text')
       .map(part => part.text)
       .join(' ');
+    const extractEnd = performance.now();
+    console.log(`💬 [Extract] User text extracted in ${(extractEnd - extractStart).toFixed(2)}ms`);
 
     if (!userText) {
+      console.log('❌ [Extract] No text content found');
       return new ChatSDKError('bad_request:api', 'No text content found').toResponse();
     }
 
     // Step 1: Perform vector search to get relevant chunks
+    const searchStart = performance.now();
     let searchResults: SearchResponse;
     try {
       await vectorSearchService.connect();
-      const results = await vectorSearchService.search(userText, numResults);
-      
+      const results = await vectorSearchService.search(userText, effectiveNumResults);
+
       searchResults = {
         success: true,
         results,
         query: userText,
         totalResults: results.length
       };
+      const searchEnd = performance.now();
+      console.log(`🔍 [Vector Search] Found ${results.length} results in ${(searchEnd - searchStart).toFixed(2)}ms`);
     } catch (searchError) {
-      console.error('Vector search error:', searchError);
+      const searchEnd = performance.now();
+      console.log(`❌ [Vector Search] Error in ${(searchEnd - searchStart).toFixed(2)}ms:`, searchError);
       searchResults = {
         success: false,
         results: [],
@@ -87,25 +105,36 @@ export async function POST(request: Request) {
     }
 
     // Step 2: Extract context from search results
-    const contextChunks = searchResults.success 
-      ? searchResults.results.map(result => result.document.text)
+    const contextStart = performance.now();
+    const contextChunks = searchResults.success
+      ? searchResults.results.map(result => result.text)
       : [];
+    const contextEnd = performance.now();
+    console.log(`📚 [Context] Extracted ${contextChunks.length} context chunks in ${(contextEnd - contextStart).toFixed(2)}ms`);
 
     // Step 3: Create RAG prompt with context
+    const promptStart = performance.now();
     const ragPrompt = createRagPrompt(userText, contextChunks);
+    const promptEnd = performance.now();
+    console.log(`📝 [Prompt] RAG prompt created in ${(promptEnd - promptStart).toFixed(2)}ms`);
 
     // Step 4: Send to Gemini with the RAG prompt
+    const geminiStart = performance.now();
     const geminiResponse = await sendGeminiRequest({
       text: ragPrompt,
       temperature: 0.7,
       maxTokens: 2048
     });
+    const geminiEnd = performance.now();
+    console.log(`🔮 [Gemini] Gemini response received in ${(geminiEnd - geminiStart).toFixed(2)}ms`);
 
     if (!geminiResponse.success) {
+      console.log('❌ [Gemini] Gemini API failed');
       return new ChatSDKError('bad_request:api', geminiResponse.error || 'Failed to get response from Gemini API').toResponse();
     }
-    
+
     // Step 5: Create response with metadata about the search
+    const responseStart = performance.now();
     const assistantMessage: ChatMessage = {
       id: `rag-${Date.now()}`,
       role: 'assistant',
@@ -129,11 +158,17 @@ export async function POST(request: Request) {
         searchError: searchResults.error
       }
     };
+    const responseEnd = performance.now();
+    console.log(`📦 [Response] Response prepared in ${(responseEnd - responseStart).toFixed(2)}ms`);
+
+    const totalEnd = performance.now();
+    console.log(`✅ [Total] RAG pipeline completed in ${(totalEnd - totalStart).toFixed(2)}ms`);
 
     return Response.json(responseData);
 
   } catch (error) {
-    console.error('RAG route error:', error);
+    const totalEnd = performance.now();
+    console.log(`❌ [Total] RAG route error after ${(totalEnd - totalStart).toFixed(2)}ms:`, error);
     return new ChatSDKError('bad_request:api', 'An error occurred while processing the RAG request').toResponse();
   }
 } 

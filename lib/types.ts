@@ -59,14 +59,12 @@ export interface Attachment {
 
 
 export interface VectorSearchResult {
+  _id: string;
+  text: string;
+  source_file?: string;
+  semester?: string;
+  lesson?: string;
   similarityScore: number;
-  document: {
-    _id: string;
-    text: string;
-    semester?: string;
-    lesson?: string;
-    source_file?: string;
-  };
 }
 
 export interface SearchRequest {
