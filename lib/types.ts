@@ -55,3 +55,29 @@ export interface Attachment {
   url: string;
   contentType: string;
 }
+
+
+
+export interface VectorSearchResult {
+  similarityScore: number;
+  document: {
+    _id: string;
+    text: string;
+    semester?: string;
+    lesson?: string;
+    source_file?: string;
+  };
+}
+
+export interface SearchRequest {
+  query: string;
+  numResults?: number;
+}
+
+export interface SearchResponse {
+  success: boolean;
+  results: VectorSearchResult[];
+  query: string;
+  totalResults: number;
+  error?: string;
+}

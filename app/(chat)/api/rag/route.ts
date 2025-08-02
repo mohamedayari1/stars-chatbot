@@ -1,7 +1,7 @@
 import { sendGeminiRequest } from '@/lib/ai/gemini';
-import { vectorSearchService } from '@/lib/vectorSearch';
 import { ChatSDKError } from '@/lib/errors';
-import type { ChatMessage, SearchRequest, SearchResponse } from '@/lib/types';
+import type { ChatMessage, SearchResponse } from '@/lib/types';
+import { vectorSearchService } from '@/lib/vectorSearch';
 import { z } from 'zod';
 
 // Schema for the RAG request body
@@ -136,4 +136,4 @@ export async function POST(request: Request) {
     console.error('RAG route error:', error);
     return new ChatSDKError('bad_request:api', 'An error occurred while processing the RAG request').toResponse();
   }
-}
+} 
