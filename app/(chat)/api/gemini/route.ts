@@ -1,6 +1,7 @@
-import { sendGeminiRequest } from '@/lib/ai/gemini';
+import { sendGeminiStreamRequest } from '@/lib/ai/gemini';
 import { ChatSDKError } from '@/lib/errors';
-import type { ChatMessage, SearchResponse } from '@/lib/types';
+import type { SearchResponse } from '@/lib/types';
+import { generateUUID } from '@/lib/utils';
 import { vectorSearchService } from '@/lib/vectorSearch';
 import { performance } from 'perf_hooks';
 import { z } from 'zod';
@@ -47,54 +48,38 @@ export async function POST(request: Request) {
   const totalStart = performance.now();
 
   try {
-    const parseStart = performance.now();
     const json = await request.json();
     requestBody = ragRequestBodySchema.parse(json);
-    const parseEnd = performance.now();
-    console.log(`📝 [Parse] Request parsed in ${(parseEnd - parseStart).toFixed(2)}ms`);
   } catch (_) {
-    console.log('❌ [Parse] Failed to parse request');
     return new ChatSDKError('bad_request:api').toResponse();
   }
 
   try {
-    // Accept numResults as optional, default to 5 if not present
     const { message, numResults, selectedChatModel } = requestBody;
     const effectiveNumResults = typeof numResults === 'number' ? numResults : 5;
-    console.log(`🤖 [Model] Selected chat model: ${selectedChatModel}`);
-
-    // Extract the text from the message parts
-    const extractStart = performance.now();
+    
+    // Extract user text
     const userText = message.parts
       .filter(part => part.type === 'text')
       .map(part => part.text)
       .join(' ');
-    const extractEnd = performance.now();
-    console.log(`💬 [Extract] User text extracted in ${(extractEnd - extractStart).toFixed(2)}ms`);
 
     if (!userText) {
-      console.log('❌ [Extract] No text content found');
       return new ChatSDKError('bad_request:api', 'No text content found').toResponse();
     }
 
-    // Step 1: Perform vector search to get relevant chunks
-    const searchStart = performance.now();
+    // Perform vector search
     let searchResults: SearchResponse;
     try {
       await vectorSearchService.connect();
       const results = await vectorSearchService.search(userText, effectiveNumResults);
-
       searchResults = {
         success: true,
         results,
         query: userText,
         totalResults: results.length
       };
-      const searchEnd = performance.now();
-      console.log(`🔍 [Vector Search] Found ${results.length} results in ${(searchEnd - searchStart).toFixed(2)}ms`);
     } catch (searchError) {
-      const searchEnd = performance.now();
-      console.log(`❌ [Vector Search] Error in ${(searchEnd - searchStart).toFixed(2)}ms:`, searchError);
       searchResults = {
         success: false,
         results: [],
@@ -104,67 +89,80 @@ export async function POST(request: Request) {
       };
     }
 
-    // Step 2: Extract context from search results
-    const contextStart = performance.now();
+    // Create RAG prompt
     const contextChunks = searchResults.success
       ? searchResults.results.map(result => result.text)
       : [];
-    const contextEnd = performance.now();
-    console.log(`📚 [Context] Extracted ${contextChunks.length} context chunks in ${(contextEnd - contextStart).toFixed(2)}ms`);
-
-    // Step 3: Create RAG prompt with context
-    const promptStart = performance.now();
     const ragPrompt = createRagPrompt(userText, contextChunks);
-    const promptEnd = performance.now();
-    console.log(`📝 [Prompt] RAG prompt created in ${(promptEnd - promptStart).toFixed(2)}ms`);
 
-    // Step 4: Send to Gemini with the RAG prompt
-    const geminiStart = performance.now();
-    const geminiResponse = await sendGeminiRequest({
-      text: ragPrompt,
-      temperature: 0.7,
-      maxTokens: 2048
-    });
-    const geminiEnd = performance.now();
-    console.log(`🔮 [Gemini] Gemini response received in ${(geminiEnd - geminiStart).toFixed(2)}ms`);
+    // Create a simple streaming response using Server-Sent Events
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          let fullResponse = '';
+          
+          // Stream the Gemini response
+          for await (const chunk of sendGeminiStreamRequest({
+            text: ragPrompt,
+            temperature: 0.7,
+            maxTokens: 2048
+          })) {
+            fullResponse += chunk;
+            
+            // Send each chunk as a Server-Sent Event
+            const event = `data: ${JSON.stringify({
+              id: generateUUID(),
+              role: 'assistant',
+              parts: [{ type: 'text', text: fullResponse }]
+            })}\n\n`;
+            
+            controller.enqueue(encoder.encode(event));
+          }
 
-    if (!geminiResponse.success) {
-      console.log('❌ [Gemini] Gemini API failed');
-      return new ChatSDKError('bad_request:api', geminiResponse.error || 'Failed to get response from Gemini API').toResponse();
-    }
+          // Send final message with metadata
+          const finalEvent = `data: ${JSON.stringify({
+            id: generateUUID(),
+            role: 'assistant',
+            parts: [{ type: 'text', text: fullResponse }],
+            metadata: {
+              searchPerformed: searchResults.success,
+              contextChunksFound: contextChunks.length,
+              totalSearchResults: searchResults.totalResults,
+              searchQuery: userText,
+              searchError: searchResults.error
+            }
+          })}\n\n`;
+          
+          controller.enqueue(encoder.encode(finalEvent));
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+          controller.close();
 
-    // Step 5: Create response with metadata about the search
-    const responseStart = performance.now();
-    const assistantMessage: ChatMessage = {
-      id: `rag-${Date.now()}`,
-      role: 'assistant',
-      parts: [
-        {
-          type: 'text',
-          text: geminiResponse.text
+        } catch (error) {
+          console.error('Streaming error:', error);
+          const errorEvent = `data: ${JSON.stringify({
+            id: generateUUID(),
+            role: 'assistant',
+            parts: [{ type: 'text', text: 'Sorry, I encountered an error. Please try again.' }]
+          })}\n\n`;
+          
+          controller.enqueue(encoder.encode(errorEvent));
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+          controller.close();
         }
-      ]
-    };
-
-    // Include search metadata in the response
-    const responseData = {
-      messages: [assistantMessage],
-      id: requestBody.id,
-      metadata: {
-        searchPerformed: searchResults.success,
-        contextChunksFound: contextChunks.length,
-        totalSearchResults: searchResults.totalResults,
-        searchQuery: userText,
-        searchError: searchResults.error
       }
-    };
-    const responseEnd = performance.now();
-    console.log(`📦 [Response] Response prepared in ${(responseEnd - responseStart).toFixed(2)}ms`);
+    });
 
     const totalEnd = performance.now();
-    console.log(`✅ [Total] RAG pipeline completed in ${(totalEnd - totalStart).toFixed(2)}ms`);
+    console.log(`✅ [Total] RAG streaming pipeline completed in ${(totalEnd - totalStart).toFixed(2)}ms`);
 
-    return Response.json(responseData);
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
 
   } catch (error) {
     const totalEnd = performance.now();

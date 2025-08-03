@@ -10,6 +10,7 @@ import Conversation from "./messages";
 export function Chat() {
   const [messages, setMessages] = useState<ChatMessage[]>(DEMO_MESSAGES);
   const [isLoading, setIsLoading] = useState(false);
+  const [input, setInput] = useState("");
 
   async function sendMessageHandler(userInput: string) {
     const userMessage: ChatMessage = {
@@ -40,17 +41,61 @@ export function Chat() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
-      
-      if (data.messages && data.messages.length > 0) {
-        // Add bot message to the updated messages
-        setMessages((prev) => [...prev, data.messages[0]]);
-      } else {
-        throw new Error('No response from API');
+      // Handle streaming response
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        throw new Error('No response body');
       }
+
+      let assistantMessage: ChatMessage | null = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6); // Remove 'data: ' prefix
+            
+            if (data === '[DONE]') {
+              break;
+            }
+
+            try {
+              const parsed = JSON.parse(data);
+              
+              if (parsed.role === 'assistant') {
+                if (!assistantMessage) {
+                  // Create new assistant message
+                  assistantMessage = {
+                    id: parsed.id,
+                    role: 'assistant',
+                    parts: parsed.parts,
+                    metadata: parsed.metadata
+                  };
+                  setMessages((prev) => [...prev, assistantMessage!]);
+                } else {
+                  // Update existing assistant message
+                  assistantMessage.parts = parsed.parts;
+                  assistantMessage.metadata = parsed.metadata;
+                  setMessages((prev) => [...prev.slice(0, -1), assistantMessage!]);
+                }
+              }
+            } catch (e) {
+              console.error('Error parsing SSE data:', e);
+            }
+          }
+        }
+      }
+
     } catch (error) {
       console.error("Error getting bot response:", error);
-      // Add error message to chat
       const errorMessage: ChatMessage = {
         id: `error-${Date.now()}`,
         role: "assistant",
@@ -62,12 +107,34 @@ export function Chat() {
     }
   }
 
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (input.trim() && !isLoading) {
+      sendMessageHandler(input);
+      setInput("");
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+  };
+
   return (
     <div className="flex flex-col min-w-0 h-dvh bg-background">
       <ChatHeader />
-      <Conversation messages={messages} isLoading={isLoading} />
+      <Conversation 
+        messages={messages} 
+        isLoading={isLoading} 
+      />
       <div className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
-        <ChatInput onSend={sendMessageHandler} messages={messages} />
+        <ChatInput 
+          onSend={sendMessageHandler} 
+          messages={messages}
+          input={input}
+          handleInputChange={handleInputChange}
+          handleSubmit={handleSubmit}
+          isLoading={isLoading}
+        />
       </div>
     </div>
   );

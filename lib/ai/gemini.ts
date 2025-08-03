@@ -33,7 +33,7 @@ export async function sendGeminiRequest(request: GeminiRequest): Promise<GeminiR
     }
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash-exp", // Using the latest model
+      model: "gemini-2.0-flash-exp",
       contents: text.trim(),
       generationConfig: {
         temperature,
@@ -81,6 +81,62 @@ export async function sendGeminiRequest(request: GeminiRequest): Promise<GeminiR
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred'
     };
+  }
+}
+
+/**
+ * Send a streaming request to Google Gemini API
+ * @param request - The request object containing text and optional parameters
+ * @returns AsyncGenerator<string> - Stream of text chunks
+ */
+export async function* sendGeminiStreamRequest(request: GeminiRequest): AsyncGenerator<string> {
+  try {
+    const { text, temperature = 0.7, maxTokens = 2048 } = request;
+
+    if (!text || text.trim() === '') {
+      throw new Error('No text provided');
+    }
+
+    // Use the streaming version of generateContent
+    const result = await ai.models.generateContentStream({
+      model: "gemini-2.0-flash-exp",
+      contents: text.trim(),
+      generationConfig: {
+        temperature,
+        maxOutputTokens: maxTokens,
+        topK: 40,
+        topP: 0.95,
+      },
+      safetySettings: [
+        {
+          category: "HARM_CATEGORY_HARASSMENT",
+          threshold: "BLOCK_MEDIUM_AND_ABOVE"
+        },
+        {
+          category: "HARM_CATEGORY_HATE_SPEECH",
+          threshold: "BLOCK_MEDIUM_AND_ABOVE"
+        },
+        {
+          category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+          threshold: "BLOCK_MEDIUM_AND_ABOVE"
+        },
+        {
+          category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+          threshold: "BLOCK_MEDIUM_AND_ABOVE"
+        }
+      ]
+    });
+
+    // The result itself is iterable
+    for await (const chunk of result) {
+      if (chunk.text) {
+        yield chunk.text;
+      }
+    }
+
+  } catch (error) {
+    console.error('Gemini streaming request error:', error);
+    throw error;
   }
 }
 
