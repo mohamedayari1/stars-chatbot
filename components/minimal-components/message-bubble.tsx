@@ -2,6 +2,7 @@ import { ChatMessage } from "@/lib/types";
 import { cx } from "class-variance-authority";
 import { AnimatePresence, motion } from "framer-motion";
 import { SparklesIcon } from "../icons";
+import { Markdown } from "../markdown";
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -45,7 +46,6 @@ export default function MessageBubble({
           )}
 
           {/* Message bubble */}
-
           <div
             data-testid="message-content"
             className={`flex flex-col gap-4 ${
@@ -54,7 +54,7 @@ export default function MessageBubble({
                 : "bg-muted px-3 py-2 rounded-xl"
             }`}
           >
-            <div className="whitespace-pre-wrap">{textContent}</div>
+            <Markdown>{textContent}</Markdown>
           </div>
 
           {/* Loading indicator */}
