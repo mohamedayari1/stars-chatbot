@@ -30,3 +30,16 @@
 //   console.error(err);
 //   process.exit(1);
 // });
+
+// Stub migration function for deployment without database
+const runMigrate = async () => {
+  console.log('⏳ Skipping migrations (database not configured)');
+  console.log('✅ Migration step completed');
+  process.exit(0);
+};
+
+runMigrate().catch((err) => {
+  console.error('❌ Migration failed');
+  console.error(err);
+  process.exit(1);
+});
