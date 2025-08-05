@@ -42,7 +42,7 @@ export const maxDuration = 60;
 
 let globalStreamContext: ResumableStreamContext | null = null;
 
-export function getStreamContext() {
+function getStreamContext() {
   if (!globalStreamContext) {
     try {
       globalStreamContext = createResumableStreamContext({
@@ -116,7 +116,9 @@ export async function POST(request: Request) {
         visibility: selectedVisibilityType,
       });
     } else {
-      if (chat.userId !== session.user.id) {
+      // Type assertion to tell TypeScript that chat is not null here
+      const existingChat = chat as any;
+      if (existingChat.userId !== session.user.id) {
         return new ChatSDKError('forbidden:chat').toResponse();
       }
     }
@@ -246,7 +248,9 @@ export async function DELETE(request: Request) {
     return new ChatSDKError('not_found:chat').toResponse();
   }
 
-  if (chat.userId !== session.user.id) {
+  // Type assertion to tell TypeScript that chat is not null here
+  const existingChat = chat as any;
+  if (existingChat.userId !== session.user.id) {
     return new ChatSDKError('forbidden:chat').toResponse();
   }
 

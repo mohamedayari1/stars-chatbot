@@ -29,7 +29,9 @@ export async function GET(request: Request) {
     return Response.json([], { status: 200 });
   }
 
-  if (suggestion.userId !== session.user.id) {
+  // Type assertion to tell TypeScript that suggestion is not null here
+  const existingSuggestion = suggestion as any;
+  if (existingSuggestion.userId !== session.user.id) {
     return new ChatSDKError('forbidden:api').toResponse();
   }
 

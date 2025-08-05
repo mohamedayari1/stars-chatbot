@@ -1,8 +1,7 @@
 import { cookies } from 'next/headers';
 
-import { Chat } from '@/components/chat';
-import { DataStreamHandler } from '@/components/data-stream-handler';
-import { DEFAULT_CHAT_MODEL } from '@/lib/ai/models';
+// import { DataStreamHandler } from '@/components/data-stream-handler';
+import { Chat } from '@/components/minimal-components/minimalChat';
 // import { getChatById, getMessagesByChatId } from '@/lib/db/queries';
 
 export default async function Page(props: { params: Promise<{ id: string }> }) {
@@ -39,15 +38,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
   return (
     <>
-      <Chat
-        id={chat.id}
-        initialMessages={uiMessages}
-        initialChatModel={chatModelFromCookie?.value || DEFAULT_CHAT_MODEL}
-        initialVisibilityType={chat.visibility}
-        isReadonly={false}
-        autoResume={true}
-      />
-      <DataStreamHandler />
+      <Chat />
+      {/* <DataStreamHandler /> */}
     </>
   );
 }

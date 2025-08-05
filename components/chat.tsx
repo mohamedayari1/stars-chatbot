@@ -160,7 +160,12 @@ export function Chat() {
           selectedVisibilityType={initialVisibilityType}
           isReadonly={isReadonly}
         /> */}
-        <ChatHeader />
+        <ChatHeader 
+          chatId="demo"
+          selectedModelId="gemini-pro"
+          selectedVisibilityType="private"
+          isReadonly={false}
+        />
 
 
         {/* <Messages

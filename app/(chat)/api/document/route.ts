@@ -32,7 +32,9 @@ export async function GET(request: Request) {
     return new ChatSDKError('not_found:document').toResponse();
   }
 
-  if (document.userId !== session.user.id) {
+  // Type assertion to tell TypeScript that document is not null here
+  const existingDocument = document as any;
+  if (existingDocument.userId !== session.user.id) {
     return new ChatSDKError('forbidden:document').toResponse();
   }
 
@@ -68,7 +70,9 @@ export async function POST(request: Request) {
   if (documents.length > 0) {
     const [document] = documents;
 
-    if (document.userId !== session.user.id) {
+    // Type assertion to tell TypeScript that document is not null here
+    const existingDocument = document as any;
+    if (existingDocument.userId !== session.user.id) {
       return new ChatSDKError('forbidden:document').toResponse();
     }
   }
@@ -113,7 +117,9 @@ export async function DELETE(request: Request) {
 
   const [document] = documents;
 
-  if (document.userId !== session.user.id) {
+  // Type assertion to tell TypeScript that document is not null here
+  const existingDocument = document as any;
+  if (existingDocument.userId !== session.user.id) {
     return new ChatSDKError('forbidden:document').toResponse();
   }
 
