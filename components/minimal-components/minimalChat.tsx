@@ -130,10 +130,6 @@ export function Chat() {
         <ChatInput 
           onSend={sendMessageHandler} 
           messages={messages}
-          input={input}
-          handleInputChange={handleInputChange}
-          handleSubmit={handleSubmit}
-          isLoading={isLoading}
         />
       </div>
     </div>
