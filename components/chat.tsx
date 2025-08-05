@@ -1,6 +1,6 @@
 'use client';
 
-import ChatHeader from '@/components/chat-header';
+import { ChatHeader } from '@/components/chat-header';
 import type { ChatMessage } from '@/lib/types';
 import { useState } from 'react';
 // import { useDataStream } from './data-stream-provider';

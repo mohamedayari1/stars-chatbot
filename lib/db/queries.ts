@@ -536,3 +536,197 @@
 //     );
 //   }
 // }
+
+// Stub functions for deployment without database
+export async function getUser(email: string): Promise<Array<any>> {
+  // Stub function - returns empty array to indicate no user found
+  return [];
+}
+
+export async function createUser(email: string, password: string) {
+  // Stub function - does nothing for now
+  console.log('Stub: createUser called with email:', email);
+  return null;
+}
+
+export async function createGuestUser() {
+  // Stub function - returns mock guest user
+  return [{ id: 'guest-123', email: 'guest@example.com' }];
+}
+
+export async function saveChat({
+  id,
+  userId,
+  title,
+  visibility,
+}: {
+  id: string;
+  userId: string;
+  title: string;
+  visibility: any;
+}) {
+  // Stub function - does nothing for now
+  console.log('Stub: saveChat called with id:', id);
+  return null;
+}
+
+export async function deleteChatById({ id }: { id: string }) {
+  // Stub function - does nothing for now
+  console.log('Stub: deleteChatById called with id:', id);
+  return null;
+}
+
+export async function getChatsByUserId({
+  id,
+  limit,
+  startingAfter,
+  endingBefore,
+}: {
+  id: string;
+  limit: number;
+  startingAfter: string | null;
+  endingBefore: string | null;
+}) {
+  // Stub function - returns empty chats
+  return { chats: [], hasMore: false };
+}
+
+export async function getChatById({ id }: { id: string }) {
+  // Stub function - returns null
+  return null;
+}
+
+export async function saveMessages({ messages }: { messages: Array<any> }) {
+  // Stub function - does nothing for now
+  console.log('Stub: saveMessages called with', messages.length, 'messages');
+  return null;
+}
+
+export async function getMessagesByChatId({ id }: { id: string }) {
+  // Stub function - returns empty array
+  return [];
+}
+
+export async function voteMessage({
+  chatId,
+  messageId,
+  type,
+}: {
+  chatId: string;
+  messageId: string;
+  type: 'up' | 'down';
+}) {
+  // Stub function - does nothing for now
+  console.log('Stub: voteMessage called with type:', type);
+  return null;
+}
+
+export async function getVotesByChatId({ id }: { id: string }) {
+  // Stub function - returns empty array
+  return [];
+}
+
+export async function saveDocument({
+  id,
+  title,
+  kind,
+  content,
+  userId,
+}: {
+  id: string;
+  title: string;
+  kind: any;
+  content: string;
+  userId: string;
+}) {
+  // Stub function - does nothing for now
+  console.log('Stub: saveDocument called with id:', id);
+  return null;
+}
+
+export async function getDocumentsById({ id }: { id: string }) {
+  // Stub function - returns empty array
+  return [];
+}
+
+export async function getDocumentById({ id }: { id: string }) {
+  // Stub function - returns null
+  return null;
+}
+
+export async function deleteDocumentsByIdAfterTimestamp({
+  id,
+  timestamp,
+}: {
+  id: string;
+  timestamp: Date;
+}) {
+  // Stub function - does nothing for now
+  console.log('Stub: deleteDocumentsByIdAfterTimestamp called with id:', id);
+  return null;
+}
+
+export async function saveSuggestions({ suggestions }: { suggestions: Array<any> }) {
+  // Stub function - does nothing for now
+  console.log('Stub: saveSuggestions called with', suggestions.length, 'suggestions');
+  return null;
+}
+
+export async function getSuggestionsByDocumentId({ documentId }: { documentId: string }) {
+  // Stub function - returns empty array
+  return [];
+}
+
+export async function getMessageById({ id }: { id: string }) {
+  // Stub function - returns empty array
+  return [];
+}
+
+export async function deleteMessagesByChatIdAfterTimestamp({
+  chatId,
+  timestamp,
+}: {
+  chatId: string;
+  timestamp: Date;
+}) {
+  // Stub function - does nothing for now
+  console.log('Stub: deleteMessagesByChatIdAfterTimestamp called with chatId:', chatId);
+  return null;
+}
+
+export async function updateChatVisiblityById({
+  chatId,
+  visibility,
+}: {
+  chatId: string;
+  visibility: 'private' | 'public';
+}) {
+  // Stub function - does nothing for now
+  console.log('Stub: updateChatVisiblityById called with visibility:', visibility);
+  return null;
+}
+
+export async function getMessageCountByUserId({
+  id,
+  differenceInHours,
+}: { id: string; differenceInHours: number }) {
+  // Stub function - returns 0
+  return 0;
+}
+
+export async function createStreamId({
+  streamId,
+  chatId,
+}: {
+  streamId: string;
+  chatId: string;
+}) {
+  // Stub function - does nothing for now
+  console.log('Stub: createStreamId called with streamId:', streamId);
+  return null;
+}
+
+export async function getStreamIdsByChatId({ chatId }: { chatId: string }) {
+  // Stub function - returns empty array
+  return [];
+}
